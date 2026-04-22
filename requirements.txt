@@ -3,6 +3,7 @@ torch
 sentence-transformers
 chromadb
 langchain
+langchain-text-splitters
 llama-index
 pandas
 numpy
