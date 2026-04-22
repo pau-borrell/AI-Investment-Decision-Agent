@@ -1,0 +1,9 @@
+Portfolio concentration occurs when a large portion of the portfolio is invested in a single asset or sector.
+
+A common rule is that no single asset should represent more than 20 percent of the total portfolio.
+
+High concentration increases risk because the portfolio becomes more sensitive to the performance of that asset.
+
+Diversification across sectors such as technology, healthcare, and finance can reduce concentration risk.
+
+Measuring diversification can be done using metrics such as the Herfindahl index.

@@ -1,0 +1,9 @@
+ETFs are commonly used to achieve diversification because they provide exposure to a broad range of assets in a single investment.
+
+For example, an S&P 500 ETF provides exposure to large-cap U.S. equities across multiple sectors.
+
+Diversification reduces unsystematic risk, which is the risk associated with individual assets.
+
+However, diversification does not eliminate systematic risk, which affects the entire market.
+
+Investors should consider sector exposure when building a portfolio to avoid over-concentration in a single industry.
