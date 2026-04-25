@@ -1,4 +1,5 @@
 transformers
+requests
 torch
 sentence-transformers
 chromadb
