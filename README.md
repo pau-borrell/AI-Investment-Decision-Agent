@@ -120,7 +120,6 @@ ollama run mistral
 
 Leave this running in the background.
 
----
 
 ### 3. Run the Investment Agent
 
