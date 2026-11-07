@@ -113,7 +113,7 @@ python -m pytest -q
 python -m unittest discover -s tests -p test_core.py -v
 ```
 
-CI tests Python 3.10 and 3.12, exercises the local UI without a model, and uploads offline JSON artifacts. It does not call Yahoo, start Ollama or download embeddings.
+The automated suite contains **35 passing tests**. CI tests Python 3.10 and 3.12, exercises the local UI without a model, and uploads offline JSON artifacts. It does not call Yahoo, start Ollama or download embeddings.
 
 For live ablations after building the index and starting Ollama:
 
