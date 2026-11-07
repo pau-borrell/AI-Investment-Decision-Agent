@@ -2,6 +2,11 @@ THRESHOLD = 0.20
 
 
 def concentration_risk(portfolio: dict, threshold: float = THRESHOLD) -> list[dict]:
+    import math
+    from src.tools.portfolio_input import validate_portfolio
+    portfolio = validate_portfolio(portfolio)
+    if not math.isfinite(threshold) or not 0 <= threshold <= 1:
+        raise ValueError('Threshold must be between 0 and 1.')
     risks = []
 
     for ticker, weight in portfolio.items():

@@ -6,9 +6,8 @@ from pathlib import Path
 from typing import Any
 
 from src.agent.agent_prompt import build_agent_prompt
-from src.rag.retrieval import retrieve_relevant_chunks
-from src.rag.slm import generate_answer
 from src.tools.analyze_portfolio import analyze_portfolio
+from src.agent.response import extract_decision, validate_answer
 
 
 CASES_PATH = Path("data/evaluation_cases.json")
@@ -29,11 +28,7 @@ class CaseResult:
 
 
 def _extract_decision(answer: str) -> str | None:
-    match = re.search(r"Recommendation:\s*(Buy|Do\s+Not\s+Buy|Neutral)", answer, re.IGNORECASE)
-    if not match:
-        return None
-    decision = match.group(1)
-    return re.sub(r"\s+", " ", decision).strip().title()
+    return extract_decision(answer)
 
 
 def _evaluate_answer(answer: str, expected_decision: str | None) -> dict:
@@ -51,6 +46,7 @@ def _evaluate_answer(answer: str, expected_decision: str | None) -> dict:
 
     return {
         "has_recommendation": has_recommendation,
+        "structure_valid": validate_answer(answer)["valid"],
         "has_justification": has_justification,
         "has_portfolio_impact": has_portfolio_impact,
         "has_uncertainty": has_uncertainty,
@@ -62,6 +58,8 @@ def _evaluate_answer(answer: str, expected_decision: str | None) -> dict:
 
 
 def _run_case(case: dict[str, Any], mode: str) -> CaseResult:
+    from src.rag.retrieval import retrieve_relevant_chunks
+    from src.rag.slm import generate_answer
     errors: list[str] = []
     retrieved_chunks: list[dict] = []
     portfolio_analysis = None
@@ -81,6 +79,14 @@ def _run_case(case: dict[str, Any], mode: str) -> CaseResult:
             portfolio_analysis = None
 
     prompt = build_agent_prompt(case["query"], retrieved_chunks, portfolio_analysis)
+    if mode == "model_only":
+        prompt = (
+            "Experimental model-only baseline. Use general financial education knowledge. "
+            "No retrieved evidence or computed portfolio tools are available. "
+            "Do not invent current prices or claim verified portfolio effects. "
+            "Use the four requested headings.\nQuestion: " + case["query"] +
+            "\nRecommendation: Buy / Do Not Buy / Neutral\nJustification:\nPortfolio impact:\nUncertainty:"
+        )
 
     try:
         answer = generate_answer(prompt)
@@ -114,6 +120,7 @@ def _load_cases() -> list[dict[str, Any]]:
 
 def _summarize_results(results: list[CaseResult]) -> dict:
     summary = {
+        "scope": "Format and keyword diagnostics only, not investment correctness.",
         "total": len(results),
         "by_mode": {},
     }
@@ -129,6 +136,8 @@ def _summarize_results(results: list[CaseResult]) -> dict:
             "mentions_concentration": 0,
             "mentions_sector": 0,
             "expected_decision_match": 0,
+            "expected_decision_labeled": 0,
+            "structure_valid": 0,
             "errors": 0,
             "avg_retrieved": 0.0
         })
@@ -142,6 +151,9 @@ def _summarize_results(results: list[CaseResult]) -> dict:
         mode_entry["mentions_concentration"] += int(result.metrics["mentions_concentration"])
         mode_entry["mentions_sector"] += int(result.metrics["mentions_sector"])
 
+        mode_entry["structure_valid"] += int(result.metrics["structure_valid"])
+        if result.metrics["expected_decision_match"] is not None:
+            mode_entry["expected_decision_labeled"] += 1
         if result.metrics["expected_decision_match"] is True:
             mode_entry["expected_decision_match"] += 1
 
@@ -158,7 +170,14 @@ def _summarize_results(results: list[CaseResult]) -> dict:
 
 
 def main() -> None:
-    cases = _load_cases()
+    import argparse
+    import os
+    import platform
+    parser = argparse.ArgumentParser(description="Run live-model ablations; requires local model and index.")
+    parser.add_argument("--cases", type=Path, default=CASES_PATH)
+    parser.add_argument("--out", type=Path, default=OUTPUTS_DIR)
+    args = parser.parse_args()
+    cases = json.loads(args.cases.read_text(encoding="utf-8"))
     results: list[CaseResult] = []
 
     for case in cases:
@@ -166,11 +185,17 @@ def main() -> None:
             results.append(_run_case(case, mode))
 
     summary = _summarize_results(results)
+    summary["configuration"] = {
+        "python": platform.python_version(),
+        "backend": os.getenv("SLM_BACKEND", "ollama"),
+        "ollama_model": os.getenv("OLLAMA_MODEL", "mistral"),
+        "cases_path": str(args.cases),
+    }
 
-    OUTPUTS_DIR.mkdir(parents=True, exist_ok=True)
+    args.out.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    results_path = OUTPUTS_DIR / f"eval_results_{timestamp}.jsonl"
-    summary_path = OUTPUTS_DIR / f"eval_summary_{timestamp}.json"
+    results_path = args.out / f"eval_results_{timestamp}.jsonl"
+    summary_path = args.out / f"eval_summary_{timestamp}.json"
 
     with results_path.open("w", encoding="utf-8") as handle:
         for result in results:
@@ -182,6 +207,8 @@ def main() -> None:
     print(f"Saved results: {results_path}")
     print(f"Saved summary: {summary_path}")
     print(json.dumps(summary, indent=2))
+    if any(result.errors for result in results):
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

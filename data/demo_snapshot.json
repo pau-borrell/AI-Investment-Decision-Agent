@@ -1,0 +1,43 @@
+{
+  "description": "Synthetic educational metadata for offline software demonstrations. Not current market data or an accurate ETF composition.",
+  "assets": {
+    "AAPL": {
+      "type": "STOCK",
+      "sector": "Technology"
+    },
+    "MSFT": {
+      "type": "STOCK",
+      "sector": "Technology"
+    },
+    "SPY": {
+      "type": "ETF",
+      "sectors": {
+        "technology": 0.3,
+        "healthcare": 0.15,
+        "financial_services": 0.15,
+        "industrials": 0.1,
+        "consumer_cyclical": 0.1
+      }
+    },
+    "JNJ": {
+      "type": "STOCK",
+      "sector": "Healthcare"
+    },
+    "XOM": {
+      "type": "STOCK",
+      "sector": "Energy"
+    },
+    "JPM": {
+      "type": "STOCK",
+      "sector": "Financial Services"
+    },
+    "PG": {
+      "type": "STOCK",
+      "sector": "Consumer Defensive"
+    },
+    "CAT": {
+      "type": "STOCK",
+      "sector": "Industrials"
+    }
+  }
+}

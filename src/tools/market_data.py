@@ -1,7 +1,7 @@
-import yfinance as yf
 
 
 def get_ticker_info(ticker: str) -> dict:
+    import yfinance as yf
     asset = yf.Ticker(ticker)
     return asset.info
 

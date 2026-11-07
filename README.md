@@ -1,272 +1,135 @@
-# AI Investment Decision Agent
+# Portfolio-aware AI Investment Agent
 
-## Team Name
-Erasmus
+A local-language-model project combining financial document retrieval with quantitative portfolio tools. It makes the evidence behind an answer inspectable: retrieved passages, normalized weights, concentration flags, sector coverage and response validation travel with every result.
 
-## Team Members
-Natalia Patallo Suarez  
-Pau Borrell Bullich  
-Guilherme Chagas Silva  
-Norbert Bara  
-Ilayda Tiryaki  
+Built by **Team Erasmus**: Natalia Patallo Suarez, Pau Borrell Bullich, Guilherme Chagas Silva, Norbert Bara and Ilayda Tiryaki.
 
-## Project Description
+## Explore in two minutes
 
-This project develops an AI agent that assists investors in deciding whether to buy a particular stock or fund based on their existing investment portfolio.
-
-Traditional financial assistants usually provide general market summaries or sentiment analysis but do not personalize recommendations according to the investor’s portfolio composition. Because of this, the same investment recommendation may not be appropriate for different investors.
-
-The goal of this project is to build a portfolio-aware AI decision agent that combines financial knowledge retrieval, quantitative portfolio analysis tools, and reasoning capabilities from a fine-tuned Small Language Model (SLM).
-
-The system will integrate several components including Retrieval-Augmented Generation (RAG), portfolio analysis tools, and an agent architecture capable of selecting tools and combining their outputs. Financial knowledge will be stored in a vector database and retrieved during inference to ground the model’s reasoning and reduce hallucinations.
-
-The agent will produce structured recommendations including:
-- A final decision (Buy / Do Not Buy / Neutral)
-- Key reasoning
-- Portfolio diversification analysis
-- Concentration risk evaluation
-- Possible alternative investments
-
-## Architecture Overview
-
-The system follows an agent-based architecture composed of several components:
-
-User Query  
-↓  
-LLM Agent Controller  
-↓  
-Tool Selection  
-↓  
-Portfolio Memory + Analytical Tools  
-↓  
-Financial Knowledge Retrieval (RAG)  
-↓  
-Final Structured Recommendation  
-
-## Technologies
-
-Python  
-Mistral 7B (fine-tuned SLM)  
-LangChain / LlamaIndex  
-ChromaDB (vector database)  
-Sentence Transformers (embeddings)  
-HuggingFace Transformers  
-PEFT / LoRA fine-tuning  
-yfinance (market data)
-
-## Installation and Setup
-
-Clone the repository:
+Python 3.10–3.12. From the repository root, run the dependency-free offline walkthrough:
 
 ```bash
-git clone https://github.com/pau-borrell/AI-Investment-Decision-Agent
-cd AI-Investment-Decision-Agent
+python -m src.demo --out outputs/offline_demo.json
 ```
 
-Create a virtual environment (recommended):
+This computes real analytics over **synthetic fixture metadata** and retrieves local educational snippets using lexical matching. It makes no network calls, downloads no model, and produces no AI recommendation.
+
+For the interactive walkthrough:
 
 ```bash
 python -m venv .venv
+# Activate on macOS/Linux: source .venv/bin/activate
+# Activate on Windows PowerShell: .venv\Scripts\Activate.ps1
+python -m pip install -r requirements-demo.txt
+streamlit run app.py
 ```
 
-Activate the environment:
+Edit holdings, inspect weights and sector look-through, review coverage warnings and retrieved snippets, then download the analysis as JSON. This interface demonstrates the analytics and retrieval workflow; the live LLM pipeline runs separately below.
 
-Windows:
+## What is implemented
 
-```bash
-.venv\Scripts\activate
-```
+| Component | Implementation |
+|---|---|
+| Orchestration | One-pass Python controller: retrieve, analyze, build prompt, generate, validate |
+| Local generation | Ollama/Mistral or Hugging Face base model + LoRA adapter |
+| Semantic RAG | Local text corpus, BGE embeddings, ChromaDB and source IDs |
+| Portfolio tools | Validated weights, position HHI, concentration and ETF sector look-through |
+| Scenarios | Seeded historical bootstrap with ticker-aligned returns; optional |
+| Offline demonstration | Dependency-free lexical retrieval and synthetic metadata, with fingerprints |
+| Evaluation | Model-only / RAG-only / RAG + tools format diagnostics |
+| Quality checks | Unit tests, mocked orchestration/provider checks, Streamlit smoke tests and CI |
 
-Mac/Linux:
+The controller is a bounded one-pass workflow, not an autonomous trading agent. LangChain text splitting is used for indexing; an LLM does not dynamically select or execute arbitrary tools. No order execution is implemented.
 
-```bash
-source .venv/bin/activate
-```
+## Run the live local-model pipeline
 
-Install dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
-
-## Running the Project
-
-### 1. Build the RAG Vector Database
-
-This step processes the financial knowledge files, creates embeddings, and stores them in ChromaDB.
+Install the semantic retrieval dependencies:
 
 ```bash
+python -m pip install -r requirements-rag.txt
 python -m src.rag.build_index
+ollama pull mistral
+ollama serve
 ```
 
-You should see output indicating:
-
-* documents loaded
-* chunks created
-* embeddings generated
-* database stored successfully
-
-
-### 2. Start the Language Model
-
-By default, the project uses Ollama. Make sure Ollama is installed and running locally.
-
-Start the model:
+Run the agent in a separate terminal:
 
 ```bash
-ollama run mistral
+python scripts/demo.py --query "What concentration risks are present?" --portfolio "AAPL=45,MSFT=35,SPY=20" --save-output outputs/live_demo.jsonl
 ```
 
-Leave this running in the background.
-
-If you want to use a fine-tuned HuggingFace + LoRA adapter instead of Ollama, set:
-
-```bash
-set SLM_BACKEND=hf
-set HF_BASE_MODEL_PATH=C:\path\to\mistral-7b-instruct
-set HF_LORA_ADAPTER_PATH=C:\path\to\AI-Investment-Decision-Agent\models\mistral7b-lora
-```
-
-Then run the agent as usual. This runs locally and can be slow on CPU.
-
-
-### 3. Run the Investment Agent
+Or use interactive portfolio entry:
 
 ```bash
 python -m src.agent.run_agent
 ```
 
-## Fine-Tune the SLM (LoRA)
+The first semantic-index build downloads the embedding model. Ollama must be installed separately; model size and hardware affect latency. No OpenAI account or API key is required. The offline walkthrough does not validate local model availability.
 
-Generate a synthetic dataset:
+Index creation refuses to replace an existing collection accidentally. Use `python -m src.rag.build_index --rebuild` to deliberately replace it.
 
-```bash
-python scripts/generate_synthetic_finetune_data.py --train-size 2000 --val-size 200
-```
+Configuration is read from environment variables; [.env.example](.env.example) documents them but is not automatically loaded. For example:
 
-Then follow the Kaggle workflow in:
+| Variable | Default / purpose |
+|---|---|
+| SLM_BACKEND | ollama; alternatively hf |
+| OLLAMA_MODEL | mistral; set explicitly for an adapter-derived model |
+| OLLAMA_URL | http://localhost:11434/api/generate |
+| HF_BASE_MODEL_PATH | Local base-model directory, required for hf |
+| HF_LORA_ADAPTER_PATH | models/mistral7b-lora |
+| HF_MAX_NEW_TOKENS | 256 |
 
-* docs/kaggle_finetune_notebook.md
+For Hugging Face/LoRA training and merging, install `requirements-finetune.txt` and follow the original [Kaggle training guide](docs/kaggle_finetune_notebook.md). Those GPU workflows and community model weights are optional and are not trained or downloaded by CI. Training dependencies are bounded rather than a hardware-specific lockfile.
 
-When training finishes, download the adapter folder and place it at:
+## Analytics and data contracts
 
-* models/mistral7b-lora
+Portfolio values are amounts or weights in **one consistent currency/unit**. Duplicate tickers are aggregated, names normalized and values renormalized. Negative, non-finite, boolean, empty and zero-total inputs are rejected; this is a long-only model.
 
-Finally, set the HF environment variables shown above and run the agent.
+Position HHI is the sum of squared position weights; effective positions is its reciprocal. HHI across ETF positions does **not** measure constituent overlap or full economic diversification. Concentration thresholds are illustrative heuristics.
 
-## Use the LoRA Model in Ollama (Merge + GGUF)
+Stock and ETF sector names share a canonical vocabulary. Missing metadata and incomplete ETF coverage remain **Unknown**, with coverage warnings; cash is represented separately. Live Yahoo metadata may fail or be stale, and current metadata cannot establish historical exposure.
 
-Ollama only runs GGUF models. To use the fine-tuned LoRA in Ollama, first merge the
-adapter into the base model on a GPU machine, then convert to GGUF.
+Optional `--simulate` scenarios use aligned adjusted-price returns and a seeded historical bootstrap. They assume daily rebalancing and zero cash yield, omit currency conversion, taxes and transaction costs, and do not model serial dependence or future regime changes. Outcomes are labeled by the requested horizon, not always one year.
 
-### 1. Merge LoRA into Base (GPU)
+## Reproducible example
 
-On Kaggle or another GPU machine, upload:
+The synthetic offline fixture uses AAPL 45%, MSFT 35%, SPY 20%, with deliberately incomplete illustrative ETF metadata:
 
-* Base Mistral model folder (HF format)
-* LoRA adapter folder (models/mistral7b-lora)
+| Check | Expected |
+|---|---:|
+| Position HHI | 0.365 |
+| Effective positions | 2.740 |
+| Technology exposure | 86.0% |
+| Known sector/cash weight | 96.0% |
 
-Then run:
+These are software reference values for synthetic inputs, **not measured current fund composition**. The exported JSON includes snapshot and corpus SHA-256 fingerprints. No investment-performance result is claimed.
 
-```python
-import torch
-from peft import PeftModel
-from transformers import AutoModelForCausalLM, AutoTokenizer
-
-BASE = "/kaggle/input/your-base-model-folder"
-ADAPTER = "/kaggle/input/your-adapter-folder"
-OUT = "mistral7b-merged"
-
-tokenizer = AutoTokenizer.from_pretrained(BASE, use_fast=True)
-model = AutoModelForCausalLM.from_pretrained(BASE, torch_dtype=torch.float16, device_map="auto")
-model = PeftModel.from_pretrained(model, ADAPTER)
-
-model = model.merge_and_unload()
-model.save_pretrained(OUT, safe_serialization=True)
-tokenizer.save_pretrained(OUT)
-```
-
-Download the `mistral7b-merged` folder.
-
-### 2. Convert to GGUF (Local)
+## Tests and evaluation
 
 ```bash
-git clone https://github.com/ggerganov/llama.cpp
-cd llama.cpp
-python -m pip install -r requirements.txt
-python convert_hf_to_gguf.py ..\mistral7b-merged --outfile ..\mistral7b-merged.gguf
-
-# Quantize (required in newer llama.cpp versions)
-cmake -S . -B build
-cmake --build build --config Release
-build\bin\quantize ..\mistral7b-merged.gguf ..\mistral7b-merged-q4_0.gguf q4_0
-
-# Linux/macOS
-# ./build/bin/quantize ../mistral7b-merged.gguf ../mistral7b-merged-q4_0.gguf q4_0
+python -m pip install -r requirements-dev.txt
+python -m pytest -q
+# Dependency-free core checks:
+python -m unittest discover -s tests -p test_core.py -v
 ```
 
-### 3. Create an Ollama Model
+CI tests Python 3.10 and 3.12, exercises the local UI without a model, and uploads offline JSON artifacts. It does not call Yahoo, start Ollama or download embeddings.
 
-Create a Modelfile:
-
-```
-FROM ./mistral7b-merged.gguf
-PARAMETER temperature 0.2
-PARAMETER top_p 0.9
-```
-
-Then build and run:
+For live ablations after building the index and starting Ollama:
 
 ```bash
-ollama create mistral-lora -f Modelfile
-ollama run mistral-lora
+python -m src.evaluation.evaluate --cases data/evaluation_cases.json --out outputs
 ```
 
-### The fine-tuned model
+See [evaluation methodology](docs/evaluation_report.md). Heading/keyword compliance does not measure correctness, grounding or investment returns. The six existing cases have no reference decisions; the evaluator reports the labeled denominator explicitly. No fresh live-model benchmark is claimed.
 
-If you have an Ollama account, you can pull the model so no need to do the fine-tuning yourself:
+## Architecture, provenance and limitations
 
-```bash
-ollama pull baranorbi12/mistral-lora
-ollama run baranorbi12/mistral-lora
-```
+- [Architecture and execution boundaries](docs/architecture.md)
+- [Model behavior and limitations](docs/MODEL_CARD.md)
+- [Data sources and missing provenance](docs/DATA.md)
+- [Development and contribution guide](CONTRIBUTING.md)
 
-Model page:
-https://ollama.com/baranorbi12/mistral-lora
+Generated model responses remain untrusted. Format and source-ID checks can flag malformed answers and fabricated IDs, but cannot prove claim-level support or resist every prompt injection. The prompt requests abstention when trade details or evidence are missing; no runtime decision-quality guarantee is implied.
 
-## Example Usage
-
-Enter your portfolio:
-
-```text
-Holding: AAPL 3000
-Holding: SPY 5000
-Holding: done
-```
-
-Then enter your question:
-
-```text
-Question: Should I buy Nvidia if I already own a lot of technology stocks?
-```
-
-## Expected Output
-
-The agent will return:
-
-* Recommendation (Buy / Do Not Buy / Neutral)
-* Justification based on retrieved knowledge
-* Portfolio impact analysis
-* Uncertainty explanation
-
-It will also display:
-
-* Retrieved knowledge sources
-* Portfolio analysis results
-
-
-## Repository
-
-GitHub Repository:
-https://github.com/pau-borrell/AI-Investement-Decision-Agent
+This is a financial education and software demonstration, not a validated investment advisory or trading system. The project has no declared repository license; no new license is imposed on the original team contributions or third-party materials.

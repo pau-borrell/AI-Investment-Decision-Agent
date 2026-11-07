@@ -7,3 +7,10 @@ models/
 outputs/
 *.gguf
 *.safetensors
+.env
+.env.*
+!.env.example
+.pytest_cache/
+*.egg-info/
+build/
+dist/

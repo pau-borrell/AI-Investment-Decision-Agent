@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import chromadb
 
 from src.rag.embeddings import load_embedding_model
 from src.rag.embeddings import embed_texts
@@ -12,19 +11,26 @@ TOP_K = 5
 
 
 def get_collection(path: Path = CHROMA_PATH, collection_name: str = COLLECTION_NAME):
+    import chromadb
     client = chromadb.PersistentClient(path=str(path))
     collection = client.get_collection(name=collection_name)
     return collection
 
 
 def retrieve_relevant_chunks(query: str, top_k: int = TOP_K) -> list[dict]:
-    query_embedding = embed_texts([query])[0]
-
+    if not isinstance(query, str) or not query.strip():
+        raise ValueError("Retrieval query cannot be empty.")
+    if isinstance(top_k, bool) or not isinstance(top_k, int) or top_k <= 0:
+        raise ValueError("top_k must be a positive integer.")
     collection = get_collection()
+    count = collection.count()
+    if count == 0:
+        return []
+    query_embedding = embed_texts([query])[0]
 
     results = collection.query(
         query_embeddings=[query_embedding],
-        n_results=top_k
+        n_results=min(top_k, count)
     )
 
     retrieved_chunks = []
