@@ -1,5 +1,6 @@
 def diversification_score(portfolio: dict) -> float:
-    return sum(weight ** 2 for weight in portfolio.values())
+    from src.tools.portfolio_input import validate_portfolio
+    return sum(weight ** 2 for weight in validate_portfolio(portfolio).values())
 
 
 def diversification_label(score: float) -> str:

@@ -1,68 +1,44 @@
-from src.tools.portfolio_input import get_portfolio_from_user
+"""Portfolio analytics; external data providers can be replaced with fixtures."""
+from src.tools.portfolio_input import get_portfolio_from_user, validate_portfolio
 from src.tools.diversification import diversification_score, diversification_label
 from src.tools.concentration import concentration_risk
-from src.tools.sector_exposure import calculate_sector_exposure, detect_sector_overexposure
-from src.tools.return_simulator import monte_carlo_simulation
+from src.tools.sector_exposure import sector_breakdown, detect_sector_overexposure
 
 
-def analyze_portfolio(portfolio: dict, run_simulation: bool = True) -> dict:
+def analyze_portfolio(portfolio: dict, run_simulation: bool = True,
+                      asset_metadata: dict | None = None, seed: int = 42) -> dict:
+    portfolio = validate_portfolio(portfolio)
     score = diversification_score(portfolio)
-    sectors = calculate_sector_exposure(portfolio)
-
+    sectors = sector_breakdown(portfolio, asset_metadata)
     result = {
         "portfolio_weights": portfolio,
         "diversification": {
-            "score": score,
-            "label": diversification_label(score)
+            "score": score, "label": diversification_label(score),
+            "effective_positions": 1 / score,
+            "scope": "Position-weight HHI; ETF constituent overlap is not measured.",
         },
         "concentration_risk": concentration_risk(portfolio),
-        "sector_exposure": sectors,
-        "sector_overexposure": detect_sector_overexposure(sectors)
+        "sector_exposure": sectors["exposure"],
+        "sector_overexposure": detect_sector_overexposure(sectors["exposure"]),
+        "sector_known_weight": sectors["known_weight"],
+        "warnings": sectors["warnings"],
     }
-
     if run_simulation:
-        result["return_simulation"] = monte_carlo_simulation(portfolio)
-
+        from src.tools.return_simulator import monte_carlo_simulation
+        try:
+            result["return_simulation"] = monte_carlo_simulation(portfolio, seed=seed)
+        except (ValueError, RuntimeError) as exc:
+            result["warnings"].append(f"Simulation unavailable: {exc}")
     return result
 
 
 def print_analysis(result: dict):
-    print("\nPortfolio weights:")
-    for ticker, weight in result["portfolio_weights"].items():
-        print(f"{ticker}: {weight:.2%}")
-
-    print("\nDiversification:")
-    print(f"Score: {result['diversification']['score']:.4f}")
-    print(f"Label: {result['diversification']['label']}")
-
-    print("\nConcentration risk:")
-    if result["concentration_risk"]:
-        for risk in result["concentration_risk"]:
-            print(f"{risk['ticker']}: {risk['weight']:.2%}")
-    else:
-        print("No asset above threshold.")
-
-    print("\nSector exposure:")
-    for sector, weight in result["sector_exposure"].items():
-        print(f"{sector}: {weight:.2%}")
-
-    print("\nSector overexposure:")
-    if result["sector_overexposure"]:
-        for risk in result["sector_overexposure"]:
-            print(f"{risk['sector']}: {risk['weight']:.2%}")
-    else:
-        print("No sector above threshold.")
-
-    if "return_simulation" in result:
-        print("\nMonte Carlo simulation:")
-        for key, value in result["return_simulation"].items():
-            print(f"{key}: {value:.2%}")
+    import json
+    print(json.dumps(result, indent=2, allow_nan=False))
 
 
 def main():
-    portfolio = get_portfolio_from_user()
-    result = analyze_portfolio(portfolio)
-    print_analysis(result)
+    print_analysis(analyze_portfolio(get_portfolio_from_user()))
 
 
 if __name__ == "__main__":

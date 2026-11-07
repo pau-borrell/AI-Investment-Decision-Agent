@@ -1,16 +1,5 @@
-transformers
-requests
-torch
-sentence-transformers
-chromadb
-langchain
-langchain-text-splitters
-llama-index
-pandas
-numpy
-yfinance
-scikit-learn
-datasets
-accelerate
-peft
-trl
+# Lightweight analytics / Ollama client
+numpy==1.26.4
+pandas==2.2.2
+requests==2.32.5
+yfinance==0.2.65

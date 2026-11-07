@@ -24,6 +24,10 @@ def query_collection(collection, query_text: str, model, top_k: int = 3):
 
 
 def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="Build the local knowledge index.")
+    parser.add_argument("--rebuild", action="store_true", help="Replace an existing index")
+    args = parser.parse_args()
     print("STEP 1: Loading documents...")
     documents = load_documents()
     print(f"Loaded {len(documents)} documents.\n")
@@ -42,7 +46,7 @@ def main():
 
     print("STEP 5: Storing in ChromaDB...")
     client = get_chroma_client(CHROMA_PATH)
-    collection = create_collection(client, COLLECTION_NAME)
+    collection = create_collection(client, COLLECTION_NAME, replace=args.rebuild)
     store_chunks(collection, chunks, embeddings)
     print(f"Stored {collection.count()} chunks in collection '{COLLECTION_NAME}'.\n")
 

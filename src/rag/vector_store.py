@@ -17,9 +17,11 @@ def get_chroma_client(path: Path = CHROMA_PATH):
     return client
 
 
-def create_collection(client, collection_name: str = COLLECTION_NAME):
-    existing_collections = [c.name for c in client.list_collections()]
+def create_collection(client, collection_name: str = COLLECTION_NAME, *, replace: bool = False):
+    existing_collections = [c if isinstance(c, str) else c.name for c in client.list_collections()]
     if collection_name in existing_collections:
+        if not replace:
+            raise ValueError("Collection already exists; pass --rebuild to replace it.")
         client.delete_collection(collection_name)
     collection = client.create_collection(name=collection_name)
     return collection

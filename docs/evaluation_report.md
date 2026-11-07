@@ -1,107 +1,47 @@
-# Evaluation and Demo
+# Evaluation methodology and status
 
-## Scope
-Evaluation and demo of the AI Investment Decision Agent.
+## Reproducible automated coverage
 
-## Environment
-- Backend: Ollama (fine-tuned model: mistral-lora)
-- Vector DB: ChromaDB at data/chroma_db
+CI runs the dependency-free core suite plus NumPy/Pandas scenarios, mocked Ollama and retrieval boundaries, and Streamlit AppTest checks on Python 3.10 and 3.12.
 
-## Evaluation Design
+The tests check duplicate aggregation, invalid holdings, scale invariance, sector alias merging, incomplete ETF coverage, unknown-data warnings, cash handling, ticker-aligned returns, single-ticker download shapes, no implicit forward fill, bootstrap repeatability, exact response structure, citation IDs, injected orchestration, lexical retrieval, offline determinism and UI error handling.
 
-### Functional Evaluation
-Checks that the system executes each stage:
-- RAG retrieval returns chunks for relevant queries.
-- Portfolio tools run and produce diversification, concentration, and sector exposure.
-- The final response follows the required structure.
+These are software checks. They do not prove that an LLM recommendation is financially correct.
 
-### Qualitative Evaluation
-Manual review of:
-- Recommendation usefulness.
-- Clarity and completeness of reasoning.
-- Uncertainty and limitations statements.
+## Offline artifact
 
-### Ablation Study
-Three modes are compared:
-- model_only: LLM without RAG or tools.
-- rag_only: LLM with retrieved context, no tools.
-- rag_tools: LLM with retrieved context and portfolio analysis.
-
-## Metrics
-Automated metrics computed by the evaluation script:
-- Structure compliance: presence of Recommendation, Justification, Portfolio impact, Uncertainty.
-- Mentions of diversification, concentration, and sector exposure.
-- Average number of retrieved chunks.
-- Expected decision match (optional per case).
-
-## How To Run
-
-1) Build the vector DB if not already built:
+Run:
 
 ```bash
-python -m src.rag.build_index
+python -m src.demo --out outputs/offline_demo.json
 ```
 
-2) Start the model backend (fine-tuned):
+The result contains synthetic analytics, retrieved passages and SHA-256 fingerprints. It declares that it uses no LLM and supplies no recommendation. CI uploads this artifact for inspection.
+
+## Live ablations
+
+After installing requirements-rag.txt, building the index and starting local Ollama:
 
 ```bash
-ollama run mistral-lora
+python -m src.evaluation.evaluate --cases data/evaluation_cases.json --out outputs
 ```
 
-3) Run the evaluation:
+| Mode | Inputs to generation |
+|---|---|
+| model_only | Question plus general financial-education instructions; no retrieval/tools |
+| rag_only | Question and retrieved knowledge |
+| rag_tools | Question, retrieved knowledge and computed portfolio analysis |
 
-```bash
-python -m src.evaluation.evaluate
-```
+Outputs: timestamped per-case JSONL and summary JSON with backend/model configuration. Runs with retrieval, analytics or generation errors exit nonzero after saving diagnostics.
 
-Outputs are written to the outputs/ folder:
-- eval_results_YYYYMMDD_HHMMSS.jsonl
-- eval_summary_YYYYMMDD_HHMMSS.json
+The evaluator reports exact structure validity, individual headings, keyword mentions, retrieved count, errors and optional expected-decision matches. The reference-labeled denominator is explicit. All six bundled cases currently have expected_decision=null: decision accuracy is therefore **not measured**.
 
-## Demo Script
-A demo script is provided to show a single end-to-end query:
+## Historical notes
 
-```bash
-python scripts/demo.py
-```
+The previous report recorded a 2026-05-12 run with six structured outputs per mode, but committed raw generations, model digests and complete run metadata were absent. Those notes cannot serve as a reproduced benchmark for this revision. No new live-model results are claimed.
 
-Optional portfolio input:
+## Limits and next experiments
 
-```bash
-python scripts/demo.py --portfolio "AAPL=0.4,SPY=0.6"
-```
+Heading and keyword counts can be gamed and should never be interpreted as quality scores. Source-ID membership is weaker than claim-level citation support. The tiny corpus and six cases cannot establish generalization or investment performance.
 
-Or with a JSON file:
-
-```bash
-python scripts/demo.py --portfolio data/portfolio_demo.json
-```
-
-## Results
-
-### Automated Summary
-Run: 2026-05-12
-
-- Model only: 6/6 structured outputs, avg retrieved = 0.0
-	- Mentions: diversification 6/6, concentration 6/6, sector 6/6
-	- Errors: 0
-- RAG only: 6/6 structured outputs, avg retrieved = 5.0
-	- Mentions: diversification 6/6, concentration 6/6, sector 6/6
-	- Errors: 0
-- RAG + tools: 6/6 structured outputs, avg retrieved = 5.0
-	- Mentions: diversification 6/6, concentration 5/6, sector 6/6
-	- Errors: 0
-
-### Qualitative Notes
-- Responses consistently follow the required structure and cite diversification/sector effects.
-- RAG + tools provides portfolio-specific reasoning (weights, sector exposure), which is more grounded than model_only.
-- Model-only mode still misses some explicit concentration/sector wording without retrieved context.
-
-## Demo Notes
-Run command: python scripts/demo.py
-
-Demo highlights:
-- Input: tech-heavy portfolio with sector overexposure
-- Output: Recommendation is driven by the decision rubric and portfolio risk flags
-- Rationale: highlights diversification, concentration, and sector exposure risks
-- Includes portfolio analysis details and uncertainty statement
+A stronger study would fix model digests and data snapshots, label retrieval relevance and factual claims, measure numerical consistency and abstention, review adversarial documents, and compare models on a larger held-out set. Proposed trade parameters and historical outcome ground truth are needed for claims about decision utility.

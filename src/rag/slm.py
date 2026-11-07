@@ -88,10 +88,17 @@ def _generate_answer_ollama(prompt: str) -> str:
 
     response.raise_for_status()
     result = response.json()
-    return result["response"].strip()
+    answer = result.get("response")
+    if not isinstance(answer, str) or not answer.strip():
+        raise RuntimeError("Ollama returned an empty or malformed response.")
+    return answer.strip()
 
 
 def generate_answer(prompt: str) -> str:
+    if SLM_BACKEND not in {"hf", "ollama"}:
+        raise ValueError("SLM_BACKEND must be ollama or hf.")
+    if not isinstance(prompt, str) or not prompt.strip():
+        raise ValueError("Prompt cannot be empty.")
     if SLM_BACKEND == "hf":
         return _generate_answer_hf(prompt)
 

@@ -1,4 +1,3 @@
-from sentence_transformers import SentenceTransformer
 
 MODEL_NAME = "BAAI/bge-base-en"
 
@@ -9,6 +8,7 @@ def load_embedding_model():
     global _model
 
     if _model is None:
+        from sentence_transformers import SentenceTransformer
         _model = SentenceTransformer(MODEL_NAME)
 
     return _model
